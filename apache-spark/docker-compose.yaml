@@ -1,0 +1,152 @@
+# Common environment variables for Spark services
+x-spark-common-env:
+  &spark-common-env
+  SPARK_MASTER_HOST: spark-master
+  SPARK_MASTER_PORT: 7077
+  SPARK_MASTER_WEBUI_PORT: 8080
+  SPARK_CONF_DIR: /opt/spark/conf
+
+x-spark-image:
+  &spark-image
+  # Build the Spark image using the provided Dockerfile
+  build:
+      context: .
+      dockerfile: Dockerfile
+  image: spark-minio:latest
+
+
+# Define all the services (containers) that will be part of this application
+services:
+
+  # Spark Master node
+  spark-master:
+    <<: *spark-image
+    container_name: spark-master
+
+    # Mount the Spark configuration file
+    volumes:
+      - ${SPARK_PROJ_DIR:-.}/config:/opt/spark/conf
+      - ${SPARK_PROJ_DIR:-.}/apps:/opt/spark-apps
+      - spark_logs:/opt/spark/logs
+
+    # Ports mapping
+    ports:
+      # Port for Spark master web UI.
+      # Note: 8081 on host to avoid conflict with Airflow webserver
+      - "8081:8080"
+
+    # Environment variables for Spark master configuration
+    environment:
+      # Define Spark master settings
+      <<: *spark-common-env
+
+    # Command to start the Spark master
+    command: >
+      bash -c "mkdir -v -p /opt/spark/logs && \
+      /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master \
+      --host $$SPARK_MASTER_HOST \
+      --port $$SPARK_MASTER_PORT \
+      --webui-port $$SPARK_MASTER_WEBUI_PORT"
+
+    # Healthcheck to ensure the master is up and running
+    healthcheck:
+      test: ["CMD-SHELL", 'curl --fail http://localhost:"$${SPARK_MASTER_WEBUI_PORT}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    
+    # Always restart the container if it stops
+    restart: always
+
+
+  # Spark Worker node - It can be scaled to multiple instances
+  spark-worker:
+    <<: *spark-image
+    container_name: spark-worker
+
+    # Mount the Spark configuration file
+    volumes:
+      - ${SPARK_PROJ_DIR:-.}/config:/opt/spark/conf
+      - ${SPARK_PROJ_DIR:-.}/apps:/opt/spark-apps
+      - spark_logs:/opt/spark/logs
+    
+    # Environment variables for Spark worker configuration
+    environment:
+      # Define Spark worker settings
+      <<: *spark-common-env
+      SPARK_WORKER_CORES: 2
+      SPARK_WORKER_MEMORY: 2g
+
+    # Commands to start the Spark worker and connect to the master
+    command: >
+      bash -c "/opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker \
+      spark://$$SPARK_MASTER_HOST:$$SPARK_MASTER_PORT \
+      --cores $$SPARK_WORKER_CORES \
+      --memory $$SPARK_WORKER_MEMORY"
+
+    # Healthcheck to ensure the worker is connected to the master
+    healthcheck:
+      test: ["CMD-SHELL", 'curl --fail http://"$${SPARK_MASTER_HOST}":"$${SPARK_MASTER_WEBUI_PORT}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+    # Always restart the container if it stops
+    restart: always
+
+    # Ensure the worker starts only after the master is healthy
+    depends_on:
+      spark-master:
+        condition: service_healthy
+
+  # Spark History Server
+  spark-history:
+    image: docker.io/apache/spark:4.0.1-python3
+    container_name: spark-history
+
+    # Mount the Spark configuration file and logs directory
+    environment:
+      - ${SPARK_PROJ_DIR:-.}/config:/opt/spark/conf
+      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=file:/opt/spark/logs
+
+    # Mount the Spark logs directory
+    volumes:
+      - spark_logs:/opt/spark/logs
+
+    # Expose the History Server UI port
+    ports:
+    # History Server UI
+      - "18080:18080"
+
+    # Healthcheck to ensure the worker is connected to the master
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:18080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    
+    # Command to start the Spark History Server
+    command: >
+      bash -c "/opt/spark/sbin/start-history-server.sh && tail -f /dev/null"
+
+    # Always restart the container if it stops
+    restart: always
+
+    # Ensure the worker starts only after the master is healthy
+    depends_on:
+      spark-master:
+        condition: service_healthy
+
+# Define named volumes for persistent storage
+volumes:
+  spark_logs:
+    external: true
+
+# Use an external Docker network to allow communication between containers
+networks:
+  default:
+    name: airflow_network
+    external: 'true'
