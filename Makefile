@@ -1,13 +1,13 @@
 # Paths
 PATH_AIRFLOW := apache-airflow# Directory name for airflow
 PATH_SPARK := apache-spark# Directory name for spark
-PATH_MINIO := minio# Directory name for minio
+
 
 # Docker Compose files
 FILE_DOCKER_COMPOSE := docker-compose.yaml# Name of the docker-compose file
 FILE_AIRFLOW_COMPOSE := $(PATH_AIRFLOW)/$(FILE_DOCKER_COMPOSE)# Path to airflow docker-compose file
 FILE_SPARK_COMPOSE := $(PATH_SPARK)/$(FILE_DOCKER_COMPOSE)# Path to spark docker-compose file
-FILE_MINIO_COMPOSE := $(PATH_MINIO)/$(FILE_DOCKER_COMPOSE)# Path to minio docker-compose file
+
 
 # Docker commands
 CMD_DOCKER_COMPOSE := docker compose -f# Command to run docker compose with a specific file
@@ -24,7 +24,7 @@ ARGS_NETWORK =#= Additional arguments for the Docker network commands
 SERVICE_NAME ?=#= Variable for the name of the service, also can be set when calling export SERVICE_NAME=scheduler
 
 # Targets
-.PHONY: network init minio airflow spark up ps log_minio log_airflow log_spark down clean get_logs help helpvars 
+.PHONY: network init  airflow spark up ps  log_airflow log_spark down clean get_logs help helpvars 
 
 network:  ## Creates the Docker network
 	$(CMD_DOCKER_NETWORK) create $(NETWORK_NAME) $(ARGS_NETWORK) || true
@@ -41,8 +41,6 @@ init: network  ## Initializes Airflow (creates DB, user, etc.) and Spark logs vo
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) down $(ARGS_COMPOSE)
 
-minio: network  ## Starts MinIO service
-	$(CMD_DOCKER_COMPOSE) $(FILE_MINIO_COMPOSE) up -d $(ARGS_COMPOSE)
 
 airflow: network  ## Starts Airflow services
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) up -d $(ARGS_COMPOSE)
@@ -51,22 +49,15 @@ spark: network  ## Starts Spark service
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) up -d $(ARGS_COMPOSE)
 
 up: network  ## Starts all services
-	$(CMD_DOCKER_COMPOSE) $(FILE_MINIO_COMPOSE) up -d $(ARGS_COMPOSE)
-	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) up -d $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) up -d $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 
 ps:  ## Shows the status of all services
-	$(CMD_DOCKER_COMPOSE) $(FILE_MINIO_COMPOSE) ps $(ARGS_COMPOSE)
-	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) ps $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) ps $(ARGS_COMPOSE)
-
-log_minio:  ## Shows the logs of minio services
-	$(CMD_DOCKER_COMPOSE) $(FILE_MINIO_COMPOSE) logs -f $(ARGS_COMPOSE) $(SERVICE_NAME)
 
 log_airflow:  ## Shows the logs of airflow services
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) logs -f $(ARGS_COMPOSE) $(SERVICE_NAME)
@@ -79,8 +70,6 @@ down:  ## Stops and removes all services and the network
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) down $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
-	$(CMD_DOCKER_COMPOSE) $(FILE_MINIO_COMPOSE) down $(ARGS_COMPOSE)
-	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_NETWORK) rm $(NETWORK_NAME) $(ARGS_NETWORK)
 
 clear:  ## Clears all services, network and volumes
@@ -89,8 +78,6 @@ clear:  ## Clears all services, network and volumes
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) down -v $(ARGS_COMPOSE)
 	rm -rf $(PATH_AIRFLOW)/logs
-	@printf $(SPACE_BAR)
-	$(CMD_DOCKER_COMPOSE) $(FILE_MINIO_COMPOSE) down -v $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_NETWORK) rm $(NETWORK_NAME) $(ARGS_NETWORK)
 
