@@ -2,12 +2,14 @@
 PATH_AIRFLOW := apache-airflow# Directory name for airflow
 PATH_SPARK := apache-spark# Directory name for spark
 PATH_POSTS := postgre# Directory name for posts
+PATH_SUPERSET := superset# Directory name for superset
 
 # Docker Compose files
 FILE_DOCKER_COMPOSE := docker-compose.yaml# Name of the docker-compose file
 FILE_AIRFLOW_COMPOSE := $(PATH_AIRFLOW)/$(FILE_DOCKER_COMPOSE)# Path to airflow docker-compose file
 FILE_SPARK_COMPOSE := $(PATH_SPARK)/$(FILE_DOCKER_COMPOSE)# Path to spark docker-compose file
 FILE_POSTS_COMPOSE := $(PATH_POSTS)/$(FILE_DOCKER_COMPOSE)# Path to postgre docker-compose file
+FILE_SUPERSET_COMPOSE := $(PATH_SUPERSET)/$(FILE_DOCKER_COMPOSE)# Path to superset docker-compose file
 
 # Docker commands
 CMD_DOCKER_COMPOSE := docker compose -f# Command to run docker compose with a specific file
@@ -41,6 +43,8 @@ init: network  ## Initializes Airflow (creates DB, user, etc.) and Spark logs vo
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_POSTS_COMPOSE) build --no-cache $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
+	$(CMD_DOCKER_COMPOSE) $(FILE_SUPERSET_COMPOSE) build --no-cache $(ARGS_COMPOSE)
+	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) down $(ARGS_COMPOSE)
 
 
@@ -52,12 +56,20 @@ spark: network  ## Starts Spark service
 
 postgre: network  ## Starts PostgreSQL service
 	$(CMD_DOCKER_COMPOSE) $(FILE_POSTS_COMPOSE) up -d $(ARGS_COMPOSE)
-	
+
+superset: network  ## Starts Superset service
+	$(CMD_DOCKER_COMPOSE) $(FILE_SUPERSET_COMPOSE) up -d $(ARGS_COMPOSE)
+
 up: network  ## Starts all services
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) up -d $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) up -d $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
+	$(CMD_DOCKER_COMPOSE) $(FILE_POSTS_COMPOSE) up -d $(ARGS_COMPOSE)
+	@printf $(SPACE_BAR)
+	$(CMD_DOCKER_COMPOSE) $(FILE_SUPERSET_COMPOSE) up -d $(ARGS_COMPOSE)
+	@printf $(SPACE_BAR)
+
 
 ps:  ## Shows the status of all services
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) ps $(ARGS_COMPOSE)
@@ -74,6 +86,10 @@ down:  ## Stops and removes all services and the network
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) down $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) down $(ARGS_COMPOSE)
+	@printf $(SPACE_BAR)
+	$(CMD_DOCKER_COMPOSE) $(FILE_POSTS_COMPOSE) down $(ARGS_COMPOSE)
+	@printf $(SPACE_BAR)
+	$(CMD_DOCKER_COMPOSE) $(FILE_SUPERSET_COMPOSE) down $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_NETWORK) rm $(NETWORK_NAME) $(ARGS_NETWORK)
 
