@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   superset:
     image: apache/superset:latest
@@ -20,10 +18,6 @@ services:
 
     ports:
       - "8088:8088"
-
-    depends_on:
-      postgres:
-        condition: service_healthy
 
     volumes:
       # Optional folder for importing datasets (CSV)
