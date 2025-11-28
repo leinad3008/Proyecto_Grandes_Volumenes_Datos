@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  superset:
+    image: apache/superset:latest
+    container_name: superset
+    restart: always
+    environment:
+      # Default admin user
+      SUPERSET_ENV: production
+      SUPERSET_LOAD_EXAMPLES: "no"
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin12345
+      ADMIN_FIRST_NAME: Superset
+      ADMIN_LAST_NAME: User
+      ADMIN_EMAIL: danmiranda2011@gmail.com
+
+      # Superset metadata DB (Postgres)
+      SQLALCHEMY_DATABASE_URI: postgresql://postgres:postgres12345@postgres:5432/superset
+
+    ports:
+      - "8088:8088"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    volumes:
+      # Optional folder for importing datasets (CSV)
+      - ../MovieLens:/data
+
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8088/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+networks:
+  default:
+    external: true
+    name: airflow_network
