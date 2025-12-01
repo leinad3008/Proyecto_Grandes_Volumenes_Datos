@@ -8,7 +8,6 @@ PATH_SUPERSET := superset# Directory name for superset
 FILE_DOCKER_COMPOSE := docker-compose.yaml# Name of the docker-compose file
 FILE_AIRFLOW_COMPOSE := $(PATH_AIRFLOW)/$(FILE_DOCKER_COMPOSE)# Path to airflow docker-compose file
 FILE_SPARK_COMPOSE := $(PATH_SPARK)/$(FILE_DOCKER_COMPOSE)# Path to spark docker-compose file
-FILE_POSTS_COMPOSE := $(PATH_POSTS)/$(FILE_DOCKER_COMPOSE)# Path to postgre docker-compose file
 FILE_SUPERSET_COMPOSE := $(PATH_SUPERSET)/$(FILE_DOCKER_COMPOSE)# Path to superset docker-compose file
 
 # Docker commands
@@ -41,8 +40,6 @@ init: network  ## Initializes Airflow (creates DB, user, etc.) and Spark logs vo
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) build --no-cache $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
-	$(CMD_DOCKER_COMPOSE) $(FILE_POSTS_COMPOSE) build --no-cache $(ARGS_COMPOSE)
-	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_SUPERSET_COMPOSE) build --no-cache $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) down $(ARGS_COMPOSE)
@@ -54,9 +51,6 @@ airflow: network  ## Starts Airflow services
 spark: network  ## Starts Spark service
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) up -d $(ARGS_COMPOSE)
 
-postgre: network  ## Starts PostgreSQL service
-	$(CMD_DOCKER_COMPOSE) $(FILE_POSTS_COMPOSE) up -d $(ARGS_COMPOSE)
-
 superset: network  ## Starts Superset service
 	$(CMD_DOCKER_COMPOSE) $(FILE_SUPERSET_COMPOSE) up -d $(ARGS_COMPOSE)
 
@@ -64,8 +58,6 @@ up: network  ## Starts all services
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) up -d $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) up -d $(ARGS_COMPOSE)
-	@printf $(SPACE_BAR)
-	$(CMD_DOCKER_COMPOSE) $(FILE_POSTS_COMPOSE) up -d $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_SUPERSET_COMPOSE) up -d $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
@@ -86,8 +78,6 @@ down:  ## Stops and removes all services and the network
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) down $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) down $(ARGS_COMPOSE)
-	@printf $(SPACE_BAR)
-	$(CMD_DOCKER_COMPOSE) $(FILE_POSTS_COMPOSE) down $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_SUPERSET_COMPOSE) down $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
