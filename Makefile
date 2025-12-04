@@ -9,6 +9,7 @@ FILE_DOCKER_COMPOSE := docker-compose.yaml# Name of the docker-compose file
 FILE_AIRFLOW_COMPOSE := $(PATH_AIRFLOW)/$(FILE_DOCKER_COMPOSE)# Path to airflow docker-compose file
 FILE_SPARK_COMPOSE := $(PATH_SPARK)/$(FILE_DOCKER_COMPOSE)# Path to spark docker-compose file
 FILE_SUPERSET_COMPOSE := $(PATH_SUPERSET)/$(FILE_DOCKER_COMPOSE)# Path to superset docker-compose file
+FILE_POSTS_COMPOSE := $(PATH_POSTS)/$(FILE_DOCKER_COMPOSE)# Path to postgre docker-compose file
 
 # Docker commands
 CMD_DOCKER_COMPOSE := docker compose -f# Command to run docker compose with a specific file
@@ -32,15 +33,13 @@ network:  ## Creates the Docker network
 	@printf $(SPACE_BAR)
 
 init: network  ## Initializes Airflow (creates DB, user, etc.) and Spark logs volume
+	$(CMD_DOCKER_COMPOSE) $(FILE_POSTS_COMPOSE) up -d $(ARGS_COMPOSE)
+	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) up airflow-init $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	docker volume create spark_logs
 	@printf $(SPACE_BAR)
 	docker run --rm -v spark_logs:/opt/spark/logs alpine chown -R 185:185 /opt/spark/logs
-	@printf $(SPACE_BAR)
-	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) build --no-cache $(ARGS_COMPOSE)
-	@printf $(SPACE_BAR)
-	$(CMD_DOCKER_COMPOSE) $(FILE_SUPERSET_COMPOSE) build --no-cache $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) down $(ARGS_COMPOSE)
 
@@ -51,11 +50,17 @@ airflow: network  ## Starts Airflow services
 spark: network  ## Starts Spark service
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) up -d $(ARGS_COMPOSE)
 
+postgre: network  ## Starts PostgreSQL service
+	$(CMD_DOCKER_COMPOSE) $(FILE_POSTS_COMPOSE) up -d $(ARGS_COMPOSE)
+
 superset: network  ## Starts Superset service
 	$(CMD_DOCKER_COMPOSE) $(FILE_SUPERSET_COMPOSE) up -d $(ARGS_COMPOSE)
 
 up: network  ## Starts all services
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) up -d $(ARGS_COMPOSE)
+	@printf $(SPACE_BAR)
+	@sleep 10
+	docker exec airflow-webserver airflow dags trigger csv_to_db
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) up -d $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
@@ -74,12 +79,20 @@ log_airflow:  ## Shows the logs of airflow services
 log_spark:  ## Shows the logs of spark services
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) logs -f $(ARGS_COMPOSE) $(SERVICE_NAME)
 
+log_posts:  ## Shows the logs of postgre services
+	$(CMD_DOCKER_COMPOSE) $(FILE_POSTS_COMPOSE) logs -f $(ARGS_COMPOSE) $(SERVICE_NAME)
+
+log_superset:  ## Shows the logs of superset services
+	$(CMD_DOCKER_COMPOSE) $(FILE_SUPERSET_COMPOSE) logs -f $(ARGS_COMPOSE) $(SERVICE_NAME)
+
 down:  ## Stops and removes all services and the network
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) down $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) down $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_SUPERSET_COMPOSE) down $(ARGS_COMPOSE)
+	@printf $(SPACE_BAR)
+	$(CMD_DOCKER_COMPOSE) $(FILE_POSTS_COMPOSE) down $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_NETWORK) rm $(NETWORK_NAME) $(ARGS_NETWORK)
 
@@ -90,7 +103,6 @@ clear:  ## Clears all services, network and volumes
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) down -v $(ARGS_COMPOSE)
 	rm -rf $(PATH_AIRFLOW)/logs
 	@printf $(SPACE_BAR)
-	$(CMD_DOCKER_NETWORK) rm $(NETWORK_NAME) $(ARGS_NETWORK)
 
 get_logs: ## Copies the spark application logs from the spark-worker container to the host
 	docker cp spark-worker:/opt/spark/logs/spark-app.log ./spark-app.log
