@@ -24,8 +24,8 @@ x-airflow-common:
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-apiserver:8080/execution/'
     # Can be used to set a custom config file, store in the local config folder
     AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
-    # Connection to MinIO S3-compatible storage
-    AIRFLOW_CONN_MINIO_S3: '{"conn_type": "aws", "login": "airflow", "password": "airflow12345", "extra": {"endpoint_url": "http://minio:9000", "region_name": "us-east-1"}}'
+    # Connection with Postgres database containing MovieLens data
+    AIRFLOW_CONN_POSTGRES_MOVIE: postgres://postgres:postgres12345@postgres:5432/postgresdb
 
   # Common volume mounts for dags, logs, configs and plugins
   volumes:
