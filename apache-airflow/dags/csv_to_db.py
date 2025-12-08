@@ -81,7 +81,7 @@ def load_csv_to_postgres(table, filename, **context):
 with DAG(
     dag_id="load_movielens_dataset",
     start_date=datetime(2024, 1, 1),
-    schedule=None,
+    schedule="@once",
     catchup=False
 ):
     files = {

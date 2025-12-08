@@ -11,6 +11,12 @@ ENV HADOOP_AWS_VERSION=3.4.1
 # Use this version of AWS SDK v2 compatible with Hadoop 3.4.1 and Spark 4.0.1
 ENV AWS_SDK_VERSION=2.25.53
 
+# Install numpy for PySpark applications
+RUN pip install numpy pandas
+#RUN pip install PySpark
+RUN wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.1/postgresql-42.7.1.jar
+
+
 # Download the Hadoop AWS jar
 RUN wget -q https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/${HADOOP_AWS_VERSION}/hadoop-aws-${HADOOP_AWS_VERSION}.jar \
         -O /opt/spark/jars/hadoop-aws-${HADOOP_AWS_VERSION}.jar

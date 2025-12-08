@@ -13,7 +13,7 @@ x-airflow-common:
     # This key is used to encrypt passwords and sensitive data in the database
     AIRFLOW__CORE__FERNET_KEY: jJ/9sz0g0OHxsfxOoSfdFdmk3ysNmPRnH3TUAbz3IHA=
     # Pause DAGs at creation to avoid running them when they are added to Airflow
-    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'False'
     # Define whether to load the example DAGs that come with Airflow
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     # Use the database to store connections, users and variables
@@ -182,9 +182,8 @@ services:
 
     container_name: airflow-scheduler
 
-    # Command to start the scheduler
+    # Command to start the scheduler and trigger initial DAG run
     command: scheduler
-
     # Healthcheck to ensure the scheduler is running
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']

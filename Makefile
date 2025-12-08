@@ -60,7 +60,6 @@ up: network  ## Starts all services
 	$(CMD_DOCKER_COMPOSE) $(FILE_AIRFLOW_COMPOSE) up -d $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
 	@sleep 10
-	docker exec airflow-webserver airflow dags trigger csv_to_db
 	@printf $(SPACE_BAR)
 	$(CMD_DOCKER_COMPOSE) $(FILE_SPARK_COMPOSE) up -d $(ARGS_COMPOSE)
 	@printf $(SPACE_BAR)
