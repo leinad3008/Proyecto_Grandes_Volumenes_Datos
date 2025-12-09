@@ -1,60 +1,130 @@
-# Proyecto_Grandes_Volumenes_Datos
+= Proyecto de Técnicas de Análisis de Grandes Volúmenes de Datos
+:experimental:
+:nofooter:
+:source-highlighter: pygments
+:sectnums:
+:stem: latexmath
+:toc:
+:xrefstyle: short
+
+== Integrantes
+- Carlos Javier Varela Jara (carlosjavier.varela@ucr.ac.cr)
+- Daniel Miranda Garita (daniel.mirandagarita@ucr.ac.cr)
+- Francisco Aguilera (fransisco.aguilera@ucr.ac.cr)
+
+== Descripción del Proyecto
+
+Este proyecto implementa un pipeline completo de análisis de grandes volúmenes de datos utilizando Apache Airflow para orquestación, Apache Spark para procesamiento distribuido, y PostgreSQL para almacenamiento de objetos. El proyecto se centra en el set de datos 
+
+=== Fuente de Datos
+
+Se utiliza la base de datos *GOES 18* (Geostationary Operational Environmental Satellite), seleccionada por ser el satélite operativo más reciente. Se procesan dos tipos de datos principales:
+
+- *SFEU (Solar Flux EUV)*: Contiene radiación solar en el rango ultravioleta extremo. El sensor EUVS mide emisiones específicas del Sol (Helio, Hidrógeno, Hierro ionizado) en múltiples longitudes de onda (256, 284, 304, 1175, 1216, 1335, 1405 nm).
+- *MAG (Magnetómetro)*: Mide el campo magnético en el entorno cercano al satélite, incluyendo componentes en coordenadas ACRF y ECEF.
+
+=== Estructura del Repositorio
+
+El repositorio está organizado en tres componentes principales:
+
+==== Apache Airflow (`apache-airflow/`)
+Orquesta el pipeline de extracción de datos mediante DAGs:
+
+- PostgreSQL: Base de datos de metadatos de Airflow
+
+- Airflow API Server: Interfaz web (http://localhost:8080)
+
+- Scheduler: Ejecuta tareas programadas diariamente
+
+- DAG Processor: Valida y procesa los DAGs
+- CLI: Herramienta para comandos manuales de Airflow
+- DAGs implementados:
+  - `airflow_extraction_exis.py`: Descarga datos EUV diariamente
+  - `airflow_extraction_mag.py`: Descarga datos MAG diariamente
+  - `spark_transform_exis.py`: Dispara transformación Spark de EUV llamando al script de la carpeta Apache Spark transform_euv.py
+  - `spark_transform_mag.py`: Dispara transformación Spark de MAG llamando al script de la carpeta Apache Spark transform_mag.py
+
+==== Apache Spark (`apache-spark/`)
+Procesa y analiza datos de manera distribuida:
+
+- Spark Master/Worker: Cluster computacional para correr aplicaciones Spark. IP: localhost:8081
+- Spark History Server: Visualización de trabajos historicos ejecutados. IP: localhost:18080
+-Transformaciones de datos:
+  - `transform_euv.py`: Limpieza y preprocesamiento de datos EUV: Se encarga de tomar el dataset del bucket de datos crudos del EXIS en MinIO y dejar solo las columnas a utilizar.Las columnas a dejar son las siguientes:  "time", "avgIrradiance256", "avgIrradiance284", "avgIrradiance304", "avgIrradiance1175", "avgIrradiance1216", "avgIrradiance1335", "avgIrradiance1405", "avgIrradianceXRSA", "avgIrradianceXRSB". También se hace un remapeo de nombres para facilitar su uso posterior, eliminando el prefijo "avgIrradiance" y dejando solo el sufijo correspondiente a la longitud de onda o tipo de radiación, dejando todo en un nuevo archivo .partque en el bucket de procesado de EXIS.
+  - `transform_mag.py`: Limpieza y preprocesamiento de datos MAG: Se encarga de tomar el dataset del bucket de datos crudos del EXIS en MinIO y dejar solo las columnas a utilizar. En concreto los datos del MAG se dividen por sample y reporte, del reporte se deja: "total_mag_ACRF", "DQF" y "OB_time", mientras que del reporte se dejan las columnas: "ECEF_X", "ECEF_Y", "ECEF_Z", "solar_array_current" y"report_time". Finalmente estas se unen por la columna de tiempo y se dejan en un archivo .parquet en el bucket de procesado de MAG. 
+
+- Aplicaciones de ML:
+
+  -Asociacion.py: Análisis de reglas de asociación
+  -Clasificacion.py: Clasificación supervisada
+  -Prediccion.py: Regresión para predicción
+  -Segmentacion.py: Clustering/segmentación
+
+==== MinIO (`minio/`)
+Almacenamiento de objetos S3-compatible (http://localhost:9001):
+- Datos crudos descargados:
+
+1.raw-exis/: Datos EUV sin procesar, una carpeta por año y mes, todos los datos vienen en formato .nc
+2.raw-mag/: Datos MAG sin procesar: una carpeta por año y mes, todos los datos vienen en formato .nc
+- Datos procesados
+1.processed-exis/: Datos EUV limpios y preprocesados, con una carpeta por año, por mes y por archivo en formato .parquet.
+2.processed-mag/: Datos MAG limpios y preprocesados, con una carpeta por año, por mes y por archivo en formato .parquet.
+- Resultados de modelos
+1.results/: Aca cada uno de los modelos guarda sus resultados en subcarpetas específicas.
 
 
+=== Inicio Rápido
 
-## Getting started
+==== Requisitos
+- Docker y Docker Compose
+- Make
+- Linux o WSL2 (para Windows)
+- Bash (para scripts de ejecución)
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+==== Instalación
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+[source,bash]
+----
+# Inicializa los contenedores de Airflow, un volumen y la red
+make init 
 
-## Add your files
+# Inicia todos los servicios.
+make up
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+# Detiene todos los servicios
+make down
 
-```
-cd existing_repo
-git remote add origin https://git.ucr.ac.cr/DANIEL.MIRANDAGARITA/proyecto_grandes_volumenes_datos.git
-git branch -M main
-git push -uf origin main
-```
+# Eliminar contenedores e imágenes
+make clear
 
-## Integrate with your tools
+# Se encarga de descargar datos historicos de EUV de años (apróximadamente 6 GB)
+make extract_exis
 
-- [ ] [Set up project integrations](https://git.ucr.ac.cr/DANIEL.MIRANDAGARITA/proyecto_grandes_volumenes_datos/-/settings/integrations)
+# Se encarga de descargar datos historicos de MAG de 4 meses (aproximadamente 20 GB)
+make extract_mag
 
-## Collaborate with your team
+# Se encarga de imprimir todos los contenedores y su estado
+make ps
+----
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+==== Acceso a Interfaces
 
-## Test and Deploy
+Una vez iniciados los servicios:
 
-Use the built-in continuous integration in GitLab.
+- *Airflow UI*: http://localhost:8080 (usuario/contraseña: airflow/airflow)
+- *PgAdmin UI*: http://localhost:8085 (usuario/contraseña: admin/admin) 
+- *Superset UI*: http://localhost:8088 (usuario/contraseña: admin/admin12345)
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+== Desarrollo y Extensiones
 
-***
+=== Agregar nuevos DAGs
+1. Crear archivo en `apache-airflow/dags/`
+2. Airflow detectará automáticamente el nuevo DAG en 1-2 minutos
+3. Verificar en la UI de Airflow
 
-## About this proyect
+=== Agregar nuevos modelos Spark
+1. Crear aplicación en `apache-spark/apps/`
+2. Actualizar `run_spark_model.sh` con nuevo parámetro
+3. Testear localmente con `spark-submit`
 
-Se utiliza la versión 18 de ROES, debido a que es la que está actualmente en operación, desde el 2022 hasta la fecha. Para ser concreto los productos: Geomagnetic Field y el Solar Flux:EUV/X-ray, con el fin de detectar eventos y resupestas geomagneticas, por ejemplo si picos en el EXIS conllevan una respuesta en el campo magnetico.
-
-## Tareas
-
-- automatizar la extracción de datos.
-- almacenamiento de datos con s3 (minIO) para facilitar escalabilidad.
-- preprocesamiento de datos (disminución de dimensiones), cadencia de datos y merge de ambos.
-- segmentación
-- asociación
-- clasifiación
-- predicción
-
+*nota*: Los modelos actuales se guardaron en la carpeta `results/` y todo lo que se corra se va a guardar en el MinIO, por lo que para futuras aplicaciones pueden ser utilizados de forma simple en vez de tener que volver a entrenar modelos. 
