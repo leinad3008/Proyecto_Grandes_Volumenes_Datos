@@ -26,7 +26,7 @@ pg_properties = {
 
 ratings = spark.read.jdbc(
     url=pg_url,
-    table="(SELECT * FROM ratings LIMIT 100000) AS ratings_limit",
+    table="(SELECT * FROM ratings LIMIT 1500000) AS ratings_limit",
     properties=pg_properties
 )
 ratings.show(5)

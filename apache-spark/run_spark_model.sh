@@ -18,6 +18,9 @@ case $MODEL_TYPE in
     prediction)
         SCRIPT="movielens_predict.py"
         ;;
+    prueba)
+        SCRIPT="prueba.py"
+        ;;
     *)
         echo "Unknown model type: $MODEL_TYPE"
         exit 1

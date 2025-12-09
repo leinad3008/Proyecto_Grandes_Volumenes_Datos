@@ -30,7 +30,7 @@ als_df = ratings.select(
  .withColumn("rating", ratings["rating"].cast("float"))
 
 # Cargar modelo
-model = ALSModel.load("/opt/spark-apps/als_movielens_full")
+model = ALSModel.load("/opt/spark-apps/als_movielens_full_model")
 
 # Hacer join solo con los factores (renombrando las columnas internas para evitar ambigüedad)
 users = model.userFactors.withColumnRenamed("id", "userId_model")
