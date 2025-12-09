@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.ml.recommendation import ALSModel
 from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.sql.functions import explode, col
 
 spark = SparkSession.builder \
     .appName("ALS MovieLens Load & Predict") \
@@ -46,25 +47,28 @@ ratings_mapped = als_df.join(users, als_df.userId == users.userId_model, "inner"
                        )
 
 # Hacer predicciones
-predictions = model.transform(ratings_mapped)
+predictions = model.recommendForAllUsers(10)
 
 # Mostrar predicciones
 predictions.show(10)
 
 
+recs_exploded = predictions.withColumn("rec", explode("recommendations")) \
+    .select(
+        col("userId"),
+        col("rec.movieId").alias("movieId_recommended"),
+        col("rec.rating").alias("score")
+    )
 
-evaluator = RegressionEvaluator(
-    metricName="rmse",
-    labelCol="rating",
-    predictionCol="prediction"
-)
-rmse = evaluator.evaluate(predictions)
-print(f"RMSE: {rmse}")
+# Mostrar ejemplo
+recs_exploded.show(20, truncate=False)
 
-predictions.write \
+
+
+recs_exploded.write \
     .format("jdbc") \
     .option("url", "jdbc:postgresql://postgres:5432/postgresdb") \
-    .option("dbtable", "als_predictions") \
+    .option("dbtable", "als_predictions_prueba") \
     .option("user", "postgres") \
     .option("password", "postgres12345") \
     .mode("overwrite") \

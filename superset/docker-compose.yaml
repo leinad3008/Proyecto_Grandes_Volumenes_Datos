@@ -1,28 +1,46 @@
+version: "3.9"
+
 services:
   superset:
-    image: apache/superset:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: superset
-    restart: always
+    user: "0"
 
     environment:
       SUPERSET_ENV: production
       SUPERSET_LOAD_EXAMPLES: "no"
+      SUPERSET_SECRET_KEY: "override"
 
-      # Datos del usuario admin
       ADMIN_USERNAME: admin
-      ADMIN_PASSWORD: admin12345
-      ADMIN_FIRST_NAME: Superset
+      ADMIN_FIRST_NAME: Admin
       ADMIN_LAST_NAME: User
-      ADMIN_EMAIL: danmiranda2011@gmail.com
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: admin123
 
-      # CONEXIÓN CORRECTA A POSTGRES
       SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://postgres:postgres12345@postgres:5432/postgresdb
 
-      # SECRET KEY OBLIGATORIO
-      SECRET_KEY: "kJ3s9D+Zp0n3u8LwA1d7F4bX9qQ2s5!v"
+    volumes:
+      - superset_home:/app/superset_home
+      - ./superset_config.py:/app/pythonpath/superset_config.py
 
     ports:
       - "8088:8088"
+
+    command:
+      - bash
+      - -c
+      - |
+          superset db upgrade && \
+          superset fab create-admin \
+            --username "$ADMIN_USERNAME" \
+            --firstname "$ADMIN_FIRST_NAME" \
+            --lastname "$ADMIN_LAST_NAME" \
+            --email "$ADMIN_EMAIL" \
+            --password "$ADMIN_PASSWORD" && \
+          superset init && \
+          superset run -h 0.0.0.0 -p 8088
 
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8088/health"]
@@ -34,3 +52,6 @@ networks:
   default:
     external: true
     name: airflow_network
+
+volumes:
+  superset_home:
