@@ -61,3 +61,7 @@ Una vez iniciados los servicios:
 3. Testear localmente con `spark-submit`
 
 *nota*: Los modelos actuales se guardaron en la carpeta `results/` y todo lo que se corra se va a guardar en el MinIO, por lo que para futuras aplicaciones pueden ser utilizados de forma simple en vez de tener que volver a entrenar modelos. 
+
+== Link al Overleaf
+Solo Leer : https://www.overleaf.com/read/xqvdhbftkjvz#a429c4
+Editar : https://www.overleaf.com/9684395214chwhwcgyyjsy#fc0e8b
