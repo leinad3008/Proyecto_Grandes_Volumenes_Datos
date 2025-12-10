@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+  superset:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: superset
+    user: "0"
+
+    environment:
+      SUPERSET_ENV: production
+      SUPERSET_LOAD_EXAMPLES: "no"
+      SUPERSET_SECRET_KEY: "override"
+
+      ADMIN_USERNAME: admin
+      ADMIN_FIRST_NAME: Admin
+      ADMIN_LAST_NAME: User
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: admin123
+
+      SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://postgres:postgres12345@postgres:5432/postgresdb
+
+    volumes:
+      - superset_home:/app/superset_home
+      - ./superset_config.py:/app/pythonpath/superset_config.py
+
+    ports:
+      - "8088:8088"
+
+    command:
+      - bash
+      - -c
+      - |
+          superset db upgrade && \
+          superset fab create-admin \
+            --username "$ADMIN_USERNAME" \
+            --firstname "$ADMIN_FIRST_NAME" \
+            --lastname "$ADMIN_LAST_NAME" \
+            --email "$ADMIN_EMAIL" \
+            --password "$ADMIN_PASSWORD" && \
+          superset init && \
+          superset run -h 0.0.0.0 -p 8088
+
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8088/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+networks:
+  default:
+    external: true
+    name: airflow_network
+
+volumes:
+  superset_home:

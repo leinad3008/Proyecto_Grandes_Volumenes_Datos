@@ -13,7 +13,7 @@ x-airflow-common:
     # This key is used to encrypt passwords and sensitive data in the database
     AIRFLOW__CORE__FERNET_KEY: jJ/9sz0g0OHxsfxOoSfdFdmk3ysNmPRnH3TUAbz3IHA=
     # Pause DAGs at creation to avoid running them when they are added to Airflow
-    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'False'
     # Define whether to load the example DAGs that come with Airflow
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     # Use the database to store connections, users and variables
@@ -24,8 +24,8 @@ x-airflow-common:
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-apiserver:8080/execution/'
     # Can be used to set a custom config file, store in the local config folder
     AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
-    # Connection to MinIO S3-compatible storage
-    AIRFLOW_CONN_MINIO_S3: '{"conn_type": "aws", "login": "airflow", "password": "airflow12345", "extra": {"endpoint_url": "http://minio:9000", "region_name": "us-east-1"}}'
+    # Connection with Postgres database containing MovieLens data
+    AIRFLOW_CONN_POSTGRES_MOVIE: postgres://postgres:postgres12345@postgres:5432/postgresdb
 
   # Common volume mounts for dags, logs, configs and plugins
   volumes:
@@ -182,9 +182,8 @@ services:
 
     container_name: airflow-scheduler
 
-    # Command to start the scheduler
+    # Command to start the scheduler and trigger initial DAG run
     command: scheduler
-
     # Healthcheck to ensure the scheduler is running
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']

@@ -1,0 +1,63 @@
+= Proyecto de Técnicas de Análisis de Grandes Volúmenes de Datos
+:experimental:
+:nofooter:
+:source-highlighter: pygments
+:sectnums:
+:stem: latexmath
+:toc:
+:xrefstyle: short
+
+== Integrantes
+- Daniel Miranda Garita (daniel.mirandagarita@ucr.ac.cr)
+
+== Descripción del Proyecto
+
+Este es un proyecto desarrollado para la materia de Técnicas de Análisis de Grandes Volúmenes de Datos en la Universidad de Costa Rica. El objetivo del proyecto es construir una plataforma de análisis y visualización de datos utilizando tecnologías modernas como Apache Airflow, Apache Spark, MinIO y Apache Superset. Para más información sobre el mismo, en el repositorio se encuentra un documento detallado del proyecto y un paper que se hizo sobre el desarrollo del mismo en la carpeta "docs/". 
+
+=== Inicio Rápido
+
+==== Requisitos
+- Docker y Docker Compose
+- Make
+- Linux o WSL2 (para Windows)
+- Bash (para scripts de ejecución)
+
+==== Instalación
+
+[source,bash]
+----
+# Inicializa los contenedores de PostgreSQL, Airflow, un volumen y la red
+make init 
+
+# Inicia todos los demás servicios.
+make up
+
+# Detiene todos los servicios
+make down
+
+# Eliminar contenedores e imágenes
+make clear
+
+----
+
+==== Acceso a Interfaces
+
+Una vez iniciados los servicios:
+
+- *Airflow UI*: http://localhost:8080 (usuario/contraseña: airflow/airflow)
+- *PgAdmin UI*: http://localhost:8085 (usuario/contraseña: admin/admin) 
+- *Superset UI*: http://localhost:8088 (usuario/contraseña: admin/admin12345)
+
+== Desarrollo y Extensiones
+
+=== Agregar nuevos DAGs
+1. Crear archivo en `apache-airflow/dags/`
+2. Airflow detectará automáticamente el nuevo DAG en 1-2 minutos
+3. Verificar en la UI de Airflow
+
+=== Agregar nuevos modelos Spark
+1. Crear aplicación en `apache-spark/apps/`
+2. Actualizar `run_spark_model.sh` con nuevo parámetro
+3. Testear localmente con `spark-submit`
+
+*nota*: Los modelos actuales se guardaron en la carpeta `results/` y todo lo que se corra se va a guardar en el MinIO, por lo que para futuras aplicaciones pueden ser utilizados de forma simple en vez de tener que volver a entrenar modelos. 
