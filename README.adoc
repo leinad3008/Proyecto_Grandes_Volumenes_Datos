@@ -8,70 +8,11 @@
 :xrefstyle: short
 
 == Integrantes
-- Carlos Javier Varela Jara (carlosjavier.varela@ucr.ac.cr)
 - Daniel Miranda Garita (daniel.mirandagarita@ucr.ac.cr)
-- Francisco Aguilera (fransisco.aguilera@ucr.ac.cr)
 
 == Descripción del Proyecto
 
-Este proyecto implementa un pipeline completo de análisis de grandes volúmenes de datos utilizando Apache Airflow para orquestación, Apache Spark para procesamiento distribuido, y PostgreSQL para almacenamiento de objetos. El proyecto se centra en el set de datos 
-
-=== Fuente de Datos
-
-Se utiliza la base de datos *GOES 18* (Geostationary Operational Environmental Satellite), seleccionada por ser el satélite operativo más reciente. Se procesan dos tipos de datos principales:
-
-- *SFEU (Solar Flux EUV)*: Contiene radiación solar en el rango ultravioleta extremo. El sensor EUVS mide emisiones específicas del Sol (Helio, Hidrógeno, Hierro ionizado) en múltiples longitudes de onda (256, 284, 304, 1175, 1216, 1335, 1405 nm).
-- *MAG (Magnetómetro)*: Mide el campo magnético en el entorno cercano al satélite, incluyendo componentes en coordenadas ACRF y ECEF.
-
-=== Estructura del Repositorio
-
-El repositorio está organizado en tres componentes principales:
-
-==== Apache Airflow (`apache-airflow/`)
-Orquesta el pipeline de extracción de datos mediante DAGs:
-
-- PostgreSQL: Base de datos de metadatos de Airflow
-
-- Airflow API Server: Interfaz web (http://localhost:8080)
-
-- Scheduler: Ejecuta tareas programadas diariamente
-
-- DAG Processor: Valida y procesa los DAGs
-- CLI: Herramienta para comandos manuales de Airflow
-- DAGs implementados:
-  - `airflow_extraction_exis.py`: Descarga datos EUV diariamente
-  - `airflow_extraction_mag.py`: Descarga datos MAG diariamente
-  - `spark_transform_exis.py`: Dispara transformación Spark de EUV llamando al script de la carpeta Apache Spark transform_euv.py
-  - `spark_transform_mag.py`: Dispara transformación Spark de MAG llamando al script de la carpeta Apache Spark transform_mag.py
-
-==== Apache Spark (`apache-spark/`)
-Procesa y analiza datos de manera distribuida:
-
-- Spark Master/Worker: Cluster computacional para correr aplicaciones Spark. IP: localhost:8081
-- Spark History Server: Visualización de trabajos historicos ejecutados. IP: localhost:18080
--Transformaciones de datos:
-  - `transform_euv.py`: Limpieza y preprocesamiento de datos EUV: Se encarga de tomar el dataset del bucket de datos crudos del EXIS en MinIO y dejar solo las columnas a utilizar.Las columnas a dejar son las siguientes:  "time", "avgIrradiance256", "avgIrradiance284", "avgIrradiance304", "avgIrradiance1175", "avgIrradiance1216", "avgIrradiance1335", "avgIrradiance1405", "avgIrradianceXRSA", "avgIrradianceXRSB". También se hace un remapeo de nombres para facilitar su uso posterior, eliminando el prefijo "avgIrradiance" y dejando solo el sufijo correspondiente a la longitud de onda o tipo de radiación, dejando todo en un nuevo archivo .partque en el bucket de procesado de EXIS.
-  - `transform_mag.py`: Limpieza y preprocesamiento de datos MAG: Se encarga de tomar el dataset del bucket de datos crudos del EXIS en MinIO y dejar solo las columnas a utilizar. En concreto los datos del MAG se dividen por sample y reporte, del reporte se deja: "total_mag_ACRF", "DQF" y "OB_time", mientras que del reporte se dejan las columnas: "ECEF_X", "ECEF_Y", "ECEF_Z", "solar_array_current" y"report_time". Finalmente estas se unen por la columna de tiempo y se dejan en un archivo .parquet en el bucket de procesado de MAG. 
-
-- Aplicaciones de ML:
-
-  -Asociacion.py: Análisis de reglas de asociación
-  -Clasificacion.py: Clasificación supervisada
-  -Prediccion.py: Regresión para predicción
-  -Segmentacion.py: Clustering/segmentación
-
-==== MinIO (`minio/`)
-Almacenamiento de objetos S3-compatible (http://localhost:9001):
-- Datos crudos descargados:
-
-1.raw-exis/: Datos EUV sin procesar, una carpeta por año y mes, todos los datos vienen en formato .nc
-2.raw-mag/: Datos MAG sin procesar: una carpeta por año y mes, todos los datos vienen en formato .nc
-- Datos procesados
-1.processed-exis/: Datos EUV limpios y preprocesados, con una carpeta por año, por mes y por archivo en formato .parquet.
-2.processed-mag/: Datos MAG limpios y preprocesados, con una carpeta por año, por mes y por archivo en formato .parquet.
-- Resultados de modelos
-1.results/: Aca cada uno de los modelos guarda sus resultados en subcarpetas específicas.
-
+Este es un proyecto desarrollado para la materia de Técnicas de Análisis de Grandes Volúmenes de Datos en la Universidad de Costa Rica. El objetivo del proyecto es construir una plataforma de análisis y visualización de datos utilizando tecnologías modernas como Apache Airflow, Apache Spark, MinIO y Apache Superset. Para más información sobre el mismo, en el repositorio se encuentra un documento detallado del proyecto y un paper que se hizo sobre el desarrollo del mismo en la carpeta "docs/". 
 
 === Inicio Rápido
 
@@ -85,10 +26,10 @@ Almacenamiento de objetos S3-compatible (http://localhost:9001):
 
 [source,bash]
 ----
-# Inicializa los contenedores de Airflow, un volumen y la red
+# Inicializa los contenedores de PostgreSQL, Airflow, un volumen y la red
 make init 
 
-# Inicia todos los servicios.
+# Inicia todos los demás servicios.
 make up
 
 # Detiene todos los servicios
@@ -97,14 +38,6 @@ make down
 # Eliminar contenedores e imágenes
 make clear
 
-# Se encarga de descargar datos historicos de EUV de años (apróximadamente 6 GB)
-make extract_exis
-
-# Se encarga de descargar datos historicos de MAG de 4 meses (aproximadamente 20 GB)
-make extract_mag
-
-# Se encarga de imprimir todos los contenedores y su estado
-make ps
 ----
 
 ==== Acceso a Interfaces
